@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -25,8 +25,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
-        status_code=422,
-        content={"detail": "Validation error", "errors": exc.errors(), "status_code": 422}
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": "Validation error", "errors": exc.errors(), "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY}
     )
 
 from sqlalchemy.exc import IntegrityError
@@ -35,47 +35,47 @@ from sqlalchemy.exc import IntegrityError
 async def integrity_exception_handler(request: Request, exc: IntegrityError):
     """Обработка ошибок целостности базы данных"""
     return JSONResponse(
-        status_code=409,
-        content={"detail": "Data integrity violation", "status_code": 409}
+        status_code=status.HTTP_409_CONFLICT,
+        content={"detail": "Data integrity violation", "status_code": status.HTTP_409_CONFLICT}
     )
 
 @app.exception_handler(UserNotFoundError)
 async def user_not_found_handler(request: Request, exc: UserNotFoundError):
     return JSONResponse(
-        status_code=404,
-        content={"detail": "User not found", "status_code": 404}
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": "User not found", "status_code": status.HTTP_404_NOT_FOUND}
     )
 
 
 @app.exception_handler(AuthenticationError)
 async def authentication_error_handler(request: Request, exc: AuthenticationError):
     return JSONResponse(
-        status_code=401,
-        content={"detail": "Authentication failed", "status_code": 401}
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": "Authentication failed", "status_code": status.HTTP_401_UNAUTHORIZED}
     )
 
 
 @app.exception_handler(InvalidTokenError)
 async def invalid_token_handler(request: Request, exc: InvalidTokenError):
     return JSONResponse(
-        status_code=401,
-        content={"detail": "Invalid token", "status_code": 401}
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": "Invalid token", "status_code": status.HTTP_401_UNAUTHORIZED}
     )
 
 
 @app.exception_handler(UserAlreadyExistsError)
 async def user_already_exists_handler(request: Request, exc: UserAlreadyExistsError):
     return JSONResponse(
-        status_code=409,
-        content={"detail": "User already exists", "status_code": 409}
+        status_code=status.HTTP_409_CONFLICT,
+        content={"detail": "User already exists", "status_code": status.HTTP_409_CONFLICT}
     )
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error", "status_code": 500}
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error", "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 
 # Инициализация контейнера

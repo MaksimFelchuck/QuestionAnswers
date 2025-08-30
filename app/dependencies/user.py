@@ -104,7 +104,7 @@ async def delete_user(user_id: int, user_repo: UserRepository = Depends(get_user
     if not success:
         raise UserNotFoundError(f"User with ID {user_id} not found")
     
-    return {"message": "Пользователь успешно удален"}
+    return {"message": "User successfully deleted"}
 
 
 async def login_user(user_credentials: UserLogin, user_repo: UserRepository = Depends(get_user_repository)) -> Token:
@@ -177,7 +177,7 @@ async def refresh_user_token(refresh_data: RefreshToken, user_repo: UserReposito
 
 async def get_current_user_info(current_user: dict, user_repo: UserRepository = Depends(get_user_repository)) -> UserResponse:
     """Получить информацию о текущем пользователе"""
-    email = current_user["email"]
+    email = current_user["sub"]
     user_id = current_user["user_id"]
     
     user = await user_repo.get_by_email(email)
