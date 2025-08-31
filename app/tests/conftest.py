@@ -3,7 +3,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.main import app
-from app.core.database import get_db, Base
+from app.core.database import get_db
+from app.alembic.models import User, Question, Answer
 from app.services.user_service import UserService
 
 
@@ -29,14 +30,23 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
+@pytest.fixture(scope="session", autouse=True)
+def create_tables():
+    """Создаем таблицы один раз для всех тестов"""
+    User.metadata.create_all(bind=engine)
+    Question.metadata.create_all(bind=engine)
+    Answer.metadata.create_all(bind=engine)
+    yield
+    # Очищаем после всех тестов
+    User.metadata.drop_all(bind=engine)
+    Question.metadata.drop_all(bind=engine)
+    Answer.metadata.drop_all(bind=engine)
+
+
 @pytest.fixture
 def client():
     """Тестовый клиент"""
-    # Создаем таблицы для тестов
-    Base.metadata.create_all(bind=engine)
     yield TestClient(app)
-    # Очищаем после тестов
-    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +57,8 @@ def clean_db():
     try:
         with engine.connect() as conn:
             conn.execute(text("DELETE FROM users"))
+            conn.execute(text("DELETE FROM answers"))
+            conn.execute(text("DELETE FROM questions"))
             conn.commit()
     except Exception:
         # Игнорируем ошибки, если таблица не существует

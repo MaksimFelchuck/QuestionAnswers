@@ -1,3 +1,8 @@
+# Git
+.git
+.gitignore
+
+# Python
 __pycache__
 *.pyc
 *.pyo
@@ -18,12 +23,40 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypothesis
-.DS_Store
+
+# Virtual environments
 venv/
-.venv/
-.env
-*.db
-*.sqlite3
-node_modules/
-.gitignore
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
 README.md
+*.md
+
+# Tests
+test.db
+*.db
+
+# Logs
+*.log

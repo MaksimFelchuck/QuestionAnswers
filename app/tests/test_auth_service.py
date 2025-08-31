@@ -1,20 +1,24 @@
 import pytest
-from datetime import datetime, timedelta
-from app.services.auth_service import create_access_token, create_refresh_token, verify_token
+from datetime import timedelta
+from app.services.auth_service import (
+    create_access_token,
+    create_refresh_token,
+    verify_token,
+    verify_password,
+    get_password_hash
+)
 
 
 class TestAuthService:
-    """Тесты для AuthService"""
-    
     def test_create_access_token_success(self):
         """Тест успешного создания access токена"""
         data = {"sub": "test@example.com", "user_id": 1}
         token = create_access_token(data)
-        
+
         assert token is not None
         assert isinstance(token, str)
         assert len(token) > 0
-        
+
         # Проверяем, что токен можно декодировать напрямую
         from jose import jwt
         from app.core.config import settings
@@ -24,7 +28,7 @@ class TestAuthService:
         assert payload["user_id"] == 1
         assert payload["type"] == "access"
         assert "exp" in payload
-    
+
     def test_create_access_token_with_expires_delta(self):
         """Тест создания access токена с кастомным временем жизни"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -40,7 +44,7 @@ class TestAuthService:
         assert payload["type"] == "access"
         assert "exp" in payload
         assert "jti" in payload  # Проверяем наличие случайного ID
-    
+
     def test_create_refresh_token_success(self):
         """Тест успешного создания refresh токена"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -57,7 +61,7 @@ class TestAuthService:
         assert payload["user_id"] == 1
         assert payload["type"] == "refresh"
         assert "exp" in payload
-    
+
     def test_refresh_token_expiration(self):
         """Тест времени жизни refresh токена"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -67,7 +71,7 @@ class TestAuthService:
         assert "exp" in payload
         assert "jti" in payload  # Проверяем наличие случайного ID
         assert payload["type"] == "refresh"
-    
+
     def test_verify_token_success(self):
         """Тест успешной верификации токена"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -79,22 +83,22 @@ class TestAuthService:
         assert payload["sub"] == "test@example.com"
         assert payload["user_id"] == 1
         assert payload["type"] == "access"
-    
+
     def test_verify_token_invalid(self):
         """Тест верификации неверного токена"""
         payload = verify_token("invalid_token")
         assert payload is None
-    
+
     def test_verify_token_empty(self):
         """Тест верификации пустого токена"""
         payload = verify_token("")
         assert payload is None
-    
+
     def test_verify_token_none(self):
         """Тест верификации None токена"""
         with pytest.raises(AttributeError):
             verify_token(None)
-    
+
     def test_token_payload_structure(self):
         """Тест структуры payload токена"""
         data = {"sub": "test@example.com", "user_id": 1, "custom_field": "value"}
@@ -109,7 +113,7 @@ class TestAuthService:
         assert payload["type"] == "access"
         assert "exp" in payload
         # iat может отсутствовать в некоторых версиях python-jose
-    
+
     def test_access_token_default_expiration(self):
         """Тест времени жизни access токена по умолчанию"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -119,7 +123,7 @@ class TestAuthService:
         assert "exp" in payload
         assert "jti" in payload  # Проверяем наличие случайного ID
         assert payload["type"] == "access"
-    
+
     def test_token_uniqueness(self):
         """Тест уникальности токенов"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -129,7 +133,7 @@ class TestAuthService:
         
         # Токены должны быть разными из-за случайного jti
         assert token1 != token2
-    
+
     def test_refresh_token_uniqueness(self):
         """Тест уникальности refresh токенов"""
         data = {"sub": "test@example.com", "user_id": 1}
@@ -139,7 +143,7 @@ class TestAuthService:
         
         # Токены должны быть разными из-за случайного jti
         assert token1 != token2
-    
+
     def test_token_with_complex_data(self):
         """Тест токена со сложными данными"""
         complex_data = {
@@ -159,7 +163,7 @@ class TestAuthService:
         assert payload["roles"] == complex_data["roles"]
         assert payload["permissions"] == complex_data["permissions"]
         assert payload["metadata"] == complex_data["metadata"]
-    
+
     def test_token_expiration_handling(self):
         """Тест обработки истекших токенов"""
         # Создаем токен с очень коротким временем жизни
@@ -178,3 +182,17 @@ class TestAuthService:
         # Теперь токен должен быть невалидным
         payload = verify_token(token)
         assert payload is None
+
+    def test_password_verification(self):
+        """Тест верификации паролей"""
+        password = "securepassword456"
+        hashed = get_password_hash(password)
+        
+        assert verify_password(password, hashed) is True
+        assert verify_password(password + "extra", hashed) is False
+        assert verify_password("", hashed) is False
+        
+        # Проверяем, что неверный хеш вызывает исключение
+        from passlib.exc import UnknownHashError
+        with pytest.raises(UnknownHashError):
+            verify_password(password, "invalid_hash")

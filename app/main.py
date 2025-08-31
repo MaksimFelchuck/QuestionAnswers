@@ -3,10 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import engine
-from app.alembic.models.user import User
+from app.core.logging import setup_logging
+from app.alembic.models import User, Question, Answer
+
+# Настройка логирования
+setup_logging()
 
 # Создаем таблицы в базе данных
 User.metadata.create_all(bind=engine)
+Question.metadata.create_all(bind=engine)
+Answer.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
