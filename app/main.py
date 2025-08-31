@@ -1,11 +1,12 @@
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.core.config import settings
-from app.core.exceptions import UserNotFoundError, AuthenticationError, InvalidTokenError, UserAlreadyExistsError
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
-from app.containers import Container
+from app.core.config import settings
+from app.core.database import engine
+from app.alembic.models.user import User
+
+# Создаем таблицы в базе данных
+User.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -14,83 +15,18 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Exception handlers
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail, "status_code": exc.status_code}
-    )
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": "Validation error", "errors": exc.errors(), "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY}
-    )
-
-from sqlalchemy.exc import IntegrityError
-
-@app.exception_handler(IntegrityError)
-async def integrity_exception_handler(request: Request, exc: IntegrityError):
-    """Обработка ошибок целостности базы данных"""
-    return JSONResponse(
-        status_code=status.HTTP_409_CONFLICT,
-        content={"detail": "Data integrity violation", "status_code": status.HTTP_409_CONFLICT}
-    )
-
-@app.exception_handler(UserNotFoundError)
-async def user_not_found_handler(request: Request, exc: UserNotFoundError):
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"detail": "User not found", "status_code": status.HTTP_404_NOT_FOUND}
-    )
-
-
-@app.exception_handler(AuthenticationError)
-async def authentication_error_handler(request: Request, exc: AuthenticationError):
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"detail": "Authentication failed", "status_code": status.HTTP_401_UNAUTHORIZED}
-    )
-
-
-@app.exception_handler(InvalidTokenError)
-async def invalid_token_handler(request: Request, exc: InvalidTokenError):
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"detail": "Invalid token", "status_code": status.HTTP_401_UNAUTHORIZED}
-    )
-
-
-@app.exception_handler(UserAlreadyExistsError)
-async def user_already_exists_handler(request: Request, exc: UserAlreadyExistsError):
-    return JSONResponse(
-        status_code=status.HTTP_409_CONFLICT,
-        content={"detail": "User already exists", "status_code": status.HTTP_409_CONFLICT}
-    )
-
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error", "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR}
-    )
-
-# Инициализация контейнера
-container = Container()
-container.config.from_dict({
-    "database": {
-        "url": settings.DATABASE_URL
-    },
-    "test_mode": False  # False для production
-})
-
-# Подключение контейнера к приложению через state
-app.state.container = container
-
+# Подключаем API роутер
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/")
 async def root():

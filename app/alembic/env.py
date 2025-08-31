@@ -1,4 +1,10 @@
+import os
+import sys
 from alembic import context
+
+# Добавляем путь к корню проекта
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from app.core.config import settings
 from app.alembic.models import Base
 

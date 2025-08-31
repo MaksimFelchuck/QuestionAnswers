@@ -1,25 +1,36 @@
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
-from .base import BaseResponse, BaseCreate, BaseUpdate
+from typing import Optional
 
-class UserCreate(BaseCreate):
-    username: str = Field(..., min_length=3, max_length=50, description="Имя пользователя")
-    email: EmailStr = Field(..., description="Email пользователя")
-    password: str = Field(..., min_length=8, description="Пароль")
 
-class UserUpdate(BaseUpdate):
-    username: Optional[str] = Field(None, min_length=3, max_length=50, description="Имя пользователя")
-    email: Optional[EmailStr] = Field(None, description="Email пользователя")
-
-class UserResponse(BaseResponse):
+class UserBase(BaseModel):
     username: str
-    email: str
-    is_active: bool = True
+    email: EmailStr
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserLogin(BaseModel):
-    email: EmailStr = Field(..., description="Email пользователя")
-    password: str = Field(..., description="Пароль")
+    email: EmailStr
+    password: str
+
 
 class Token(BaseModel):
     access_token: str
@@ -27,9 +38,6 @@ class Token(BaseModel):
     token_type: str = "bearer"
     expires_in: int
 
-class TokenData(BaseModel):
-    email: Optional[str] = None
-    user_id: Optional[int] = None
 
 class RefreshToken(BaseModel):
     refresh_token: str
